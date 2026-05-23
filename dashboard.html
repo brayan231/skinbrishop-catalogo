@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>SkinBri Shop — Panel de Administración</title>
+  <meta name="description" content="Panel administrativo de SkinBri Shop - Gestiona productos, pedidos, banners y más">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&family=Noto+Serif+KR:wght@200;300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="dashboard.css">
+  <style>
+    /* Mejoras críticas para el funcionamiento */
+    .sidebar { transition: transform 0.3s ease; }
+    .sidebar.open { transform: translateX(0); }
+    @media (max-width: 900px) { .sidebar { transform: translateX(-100%); } }
+    .view { display: none; animation: fadeIn 0.3s ease; }
+    .view.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .form-feedback { display: none; padding: 0.75rem 1rem; border-radius: 12px; margin-top: 1rem; font-size: 0.85rem; }
+    .form-feedback.ok { display: block; background: #f0fdf4; border: 1px solid #bbf7d0; color: #16a34a; }
+    .form-feedback.err { display: block; background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
+    .loading-row { text-align: center; padding: 3rem; color: #8a7080; }
+    .mini-spin { display: inline-block; width: 16px; height: 16px; border: 2px solid #e8a0a0; border-top-color: #c04060; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 0.5rem; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .btn-icon { width: 32px; height: 32px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem; transition: all 0.25s; cursor: pointer; background: transparent; border: none; }
+    .btn-icon:hover { background: #fce8e0; transform: scale(1.05); }
+    .btn-icon.danger:hover { background: #fef2f2; color: #dc2626; }
+    .btn-icon.success:hover { background: #f0fdf4; color: #16a34a; }
+    .admin-toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: #1a1014; color: #fff; padding: 0.7rem 1.5rem; border-radius: 50px; font-size: 0.85rem; z-index: 9999; opacity: 0; transform: translateY(10px); transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 20px 60px rgba(90, 40, 60, 0.16); max-width: 90vw; }
+    .admin-toast.on { opacity: 1; transform: translateY(0); }
+    .btn-spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; margin-right: 0.5rem; }
+    .product-card-preview { background: #fdf8f5; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; border: 1px solid rgba(90,40,60,0.1); }
+    .stock-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
+    .stock-high { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+    .stock-low { background: #fefce8; color: #92400e; border: 1px solid #fde68a; }
+    .stock-out { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sb-head">
+    <div class="sb-logo">
+      <span class="sb-kr">스킨브리</span>
+      <span class="sb-en">SkinBri</span>
+    </div>
+    <span class="sb-role">Admin Panel</span>
+  </div>
+  <nav class="sb-nav">
+    <a class="sbl active" data-view="dashboard" href="#">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard
+    </a>
+    <a class="sbl" data-view="products" href="#">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Productos
+    </a>
+    <a class="sbl" data-view="add" href="#">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Nuevo Producto
+    </a>
+    <a class="sbl" data-view="banners" href="#">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg>Banners
+    </a>
+    <a class="sbl" data-view="coupons" href="#">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>Cupones
+    </a>
+    <a class="sbl" data-view="subscribers" href="#">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Suscriptoras
+    </a>
+    <a class="sbl" data-view="orders" href="#">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Pedidos
+    </a>
+    <a class="sbl" data-view="about" href="#">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Sobre Nosotras
+    </a>
+  </nav>
+  <div class="sb-foot">
+    <a href="../index.html" class="sb-shop-link" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Ver Tienda
+    </a>
+    <button id="logoutBtn" class="sb-logout" type="button">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Cerrar Sesión
+    </button>
+  </div>
+</aside>
+
+<!-- MAIN WRAP -->
+<div class="main-wrap">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <button class="sb-toggle" id="sbToggle" type="button" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="tb-title" id="tbTitle">Dashboard</div>
+    <div class="tb-right">
+      <div class="tb-user">
+        <div class="tb-avatar" id="tbAvatar">A</div>
+        <span id="tbEmail">admin</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- VISTA: DASHBOARD -->
+  <!-- ══════════════════════════════════════════════ -->
+  <section class="view active" id="view-dashboard">
+    <div class="view-header">
+      <h1>Dashboard</h1>
+      <p>Resumen general de SkinBri Shop</p>
+    </div>
+    <div class="kpi-row" id="kpiRow">
+      <div class="kpi"><div class="kpi-icon">📦</div><div class="kpi-data"><strong id="kpi-total">0</strong><span>Total Productos</span></div></div>
+      <div class="kpi"><div class="kpi-icon">✅</div><div class="kpi-data"><strong id="kpi-active">0</strong><span>Activos</span></div></div>
+      <div class="kpi"><div class="kpi-icon">⚠️</div><div class="kpi-data"><strong id="kpi-low">0</strong><span>Stock Bajo (≤5)</span></div></div>
+      <div class="kpi"><div class="kpi-icon">❌</div><div class="kpi-data"><strong id="kpi-out">0</strong><span>Agotados</span></div></div>
+      <div class="kpi"><div class="kpi-icon">💌</div><div class="kpi-data"><strong id="kpi-subs">0</strong><span>Suscriptoras</span></div></div>
+      <div class="kpi"><div class="kpi-icon">🏷</div><div class="kpi-data"><strong id="kpi-coupons">0</strong><span>Cupones</span></div></div>
+    </div>
+    <div class="dash-grid">
+      <div class="dash-card">
+        <div class="dc-title">📊 Productos por Categoría</div>
+        <div class="cat-bars" id="catBars"></div>
+      </div>
+      <div class="dash-card">
+        <div class="dc-title">⚠️ Alertas de Stock</div>
+        <div class="stock-alerts" id="stockAlerts"></div>
+      </div>
+      <div class="dash-card">
+        <div class="dc-title">💰 Estadísticas de Precios</div>
+        <div class="price-stats" id="priceStats"></div>
+      </div>
+      <div class="dash-card">
+        <div class="dc-title">⚡ Accesos Rápidos</div>
+        <div class="quick-actions">
+          <button class="qa-btn" data-view="add">➕ Nuevo Producto</button>
+          <button class="qa-btn" data-view="banners">🖼 Gestionar Banners</button>
+          <button class="qa-btn" data-view="coupons">🏷 Crear Cupón</button>
+          <button class="qa-btn" data-view="subscribers">💌 Ver Suscriptoras</button>
+          <button class="qa-btn" data-view="orders">📋 Ver Pedidos</button>
+          <button class="qa-btn" data-view="about">✏️ Editar "Sobre Nosotras"</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- VISTA: LISTA DE PRODUCTOS -->
+  <!-- ══════════════════════════════════════════════ -->
+  <section class="view" id="view-products">
+    <div class="view-header">
+      <h1>Productos</h1>
+      <button class="btn-primary" data-view="add" id="addProductBtn" type="button">+ Nuevo Producto</button>
+    </div>
+    <div class="toolbar">
+      <input type="text" id="tableSearch" class="tb-search" placeholder="Buscar producto por nombre o marca..." autocomplete="off">
+      <select id="tableCat" class="tb-select">
+        <option value="">Todas las categorías</option>
+        <option value="cleanser">🧼 Limpiadores</option>
+        <option value="toner">💧 Tónicos</option>
+        <option value="serum">✨ Sérums</option>
+        <option value="moisturizer">🌿 Hidratantes</option>
+        <option value="mask">🎭 Mascarillas</option>
+        <option value="sunscreen">☀️ Protector Solar</option>
+        <option value="eyecream">👁 Contorno de Ojos</option>
+        <option value="essence">🌸 Esencias</option>
+      </select>
+      <select id="tableStatus" class="tb-select">
+        <option value="">Todos</option>
+        <option value="active">✅ Activos</option>
+        <option value="inactive">🙈 Ocultos</option>
+        <option value="low">⚠️ Stock Bajo</option>
+        <option value="out">❌ Agotados</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table class="prod-table">
+        <thead>
+          <tr>
+            <th width="56">Img</th>
+            <th>Nombre / Marca</th>
+            <th>Categoría</th>
+            <th>Precio</th>
+            <th>Stock</th>
+            <th>Estado</th>
+            <th width="130">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="prodTableBody">
+          <tr><td colspan="7" class="loading-row"><div class="mini-spin"></div> Cargando productos...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer"><span id="tableCount">0 productos</span></div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- VISTA: NUEVO/EDITAR PRODUCTO -->
+  <!-- ══════════════════════════════════════════════ -->
+  <section class="view" id="view-add">
+    <div class="view-header">
+      <h1 id="formTitle">Nuevo Producto</h1>
+      <p id="formSub">Completa todos los campos del producto</p>
+    </div>
+    <form id="productForm" class="pform" onsubmit="return false">
+      <input type="hidden" id="editId">
+
+      <!-- IMÁGENES MÚLTIPLES -->
+      <div class="pform-card">
+        <div class="pfc-title">📷 Imágenes del Producto <span class="pfc-note">Máximo 5 imágenes. La primera es la principal.</span></div>
+        <div class="multi-img-grid" id="multiImgGrid"></div>
+        <div class="upload-progress" id="uploadProgress" style="display:none">
+          <div class="up-bar"><div class="up-fill" id="upFill"></div></div>
+          <span id="upText">Subiendo imagen...</span>
+        </div>
+      </div>
+
+      <!-- INFORMACIÓN BÁSICA -->
+      <div class="pform-card">
+        <div class="pfc-title">📝 Información Básica</div>
+        <div class="pf-grid-2">
+          <div class="pf-field req">
+            <label>Nombre del Producto *</label>
+            <input type="text" id="pName" placeholder="Ej: Snail 96 Mucin Power Essence" required>
+          </div>
+          <div class="pf-field req">
+            <label>Marca *</label>
+            <input type="text" id="pBrand" placeholder="Ej: COSRX, Innisfree, Laneige" required>
+          </div>
+        </div>
+        <div class="pf-grid-2">
+          <div class="pf-field req">
+            <label>Categoría *</label>
+            <select id="pCategory" required>
+              <option value="">Seleccionar...</option>
+              <option value="cleanser">🧼 Limpiador</option>
+              <option value="toner">💧 Tónico</option>
+              <option value="serum">✨ Sérum</option>
+              <option value="moisturizer">🌿 Hidratante</option>
+              <option value="mask">🎭 Mascarilla</option>
+              <option value="sunscreen">☀️ Protector Solar</option>
+              <option value="eyecream">👁 Contorno de Ojos</option>
+              <option value="essence">🌸 Esencia</option>
+            </select>
+          </div>
+          <div class="pf-field">
+            <label>Tamaño / Presentación</label>
+            <input type="text" id="pSize" placeholder="Ej: 96ml, 150ml, 50g">
+          </div>
+        </div>
+        <div class="pf-field">
+          <label>Descripción Corta <span class="pf-hint">(aparece en la tarjeta — máx 80 caracteres)</span></label>
+          <input type="text" id="pShortDesc" placeholder="Ej: Esencia hidratante con baba de caracol..." maxlength="80">
+          <span class="char-count" id="shortDescCount">0/80</span>
+        </div>
+        <div class="pf-field">
+          <label>Descripción Completa</label>
+          <textarea id="pDesc" rows="5" placeholder="Descripción detallada: beneficios, ingredientes clave, modo de uso, textura..."></textarea>
+        </div>
+      </div>
+
+      <!-- PRECIO Y STOCK -->
+      <div class="pform-card">
+        <div class="pfc-title">💰 Precios y Stock</div>
+        <div class="pf-grid-3">
+          <div class="pf-field req">
+            <label>Precio de Venta (S/) *</label>
+            <input type="number" id="pPrice" step="0.01" min="0" placeholder="0.00" required>
+          </div>
+          <div class="pf-field">
+            <label>Precio Original (S/)</label>
+            <input type="number" id="pOrigPrice" step="0.01" min="0" placeholder="0.00">
+            <span class="pf-hint">Para mostrar descuento</span>
+          </div>
+          <div class="pf-field">
+            <label>Stock Disponible</label>
+            <input type="number" id="pStock" min="0" placeholder="Ej: 20">
+          </div>
+        </div>
+      </div>
+
+      <!-- DETALLES ADICIONALES -->
+      <div class="pform-card">
+        <div class="pfc-title">✨ Detalles Adicionales</div>
+        <div class="pf-grid-3">
+          <div class="pf-field">
+            <label>Tipo de Piel</label>
+            <input type="text" id="pSkinType" placeholder="Ej: Todos / Seca / Grasa / Mixta">
+          </div>
+          <div class="pf-field">
+            <label>Calificación (1–5)</label>
+            <input type="number" id="pRating" min="1" max="5" step="0.1" placeholder="4.5">
+          </div>
+          <div class="pf-field">
+            <label>N° de Reseñas</label>
+            <input type="number" id="pReviews" min="0" placeholder="0">
+          </div>
+        </div>
+        <div class="pf-checks">
+          <label class="check-wrap"><input type="checkbox" id="pIsNew"><span class="cb"></span>🆕 Nuevo producto</label>
+          <label class="check-wrap"><input type="checkbox" id="pIsHot"><span class="cb"></span>🔥 Hot / Popular</label>
+          <label class="check-wrap"><input type="checkbox" id="pActive" checked><span class="cb"></span>✅ Activo (visible en tienda)</label>
+        </div>
+      </div>
+
+      <!-- BOTONES -->
+      <div class="pform-actions">
+        <button type="button" class="btn-cancel" id="cancelForm">Cancelar</button>
+        <button type="submit" class="btn-primary" id="saveBtn">
+          <span class="btn-spinner" id="saveSpinner" style="display:none"></span>
+          <span id="saveText">💾 Guardar Producto</span>
+        </button>
+      </div>
+      <div class="form-feedback" id="formFeedback"></div>
+    </form>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- VISTA: BANNERS -->
+  <!-- ══════════════════════════════════════════════ -->
+  <section class="view" id="view-banners">
+    <div class="view-header">
+      <h1>Banners / Slider</h1>
+      <button class="btn-primary" id="addBannerBtn" type="button">+ Nuevo Banner</button>
+    </div>
+    <div class="banners-grid" id="bannersGrid">
+      <div class="loading-row"><div class="mini-spin"></div> Cargando banners...</div>
+    </div>
+
+    <!-- Formulario de Banner (side form) -->
+    <div class="side-form" id="bannerForm" style="display:none">
+      <div class="sf-header">
+        <h3 id="bannerFormTitle">Nuevo Banner</h3>
+        <button class="sf-close" id="closeBannerForm" type="button">✕</button>
+      </div>
+      <div class="sf-body">
+        <input type="hidden" id="bannerEditId">
+        <div class="pf-field req"><label>Título *</label><input type="text" id="bTitle" placeholder="Ej: K-Beauty Auténtico"></div>
+        <div class="pf-field"><label>Título en cursiva / resaltado</label><input type="text" id="bTitleEm" placeholder="Ej: de Corea"></div>
+        <div class="pf-field"><label>Subtítulo</label><textarea id="bSub" rows="3" placeholder="Descripción corta..."></textarea></div>
+        <div class="pf-field"><label>Texto del badge</label><input type="text" id="bBadge" placeholder="Ej: ✦ Nuevo Catálogo ✦"></div>
+        <div class="pf-field"><label>Botón principal</label><input type="text" id="bCta" placeholder="Ej: Ver Catálogo"></div>
+        <div class="pf-field"><label>Botón secundario</label><input type="text" id="bCta2" placeholder="Ej: Ver Ofertas"></div>
+        <div class="pf-grid-2">
+          <div class="pf-field">
+            <label>Enlace botón 1</label>
+            <select id="bLink">
+              <option value="all">📦 Catálogo</option>
+              <option value="featured">⭐ Destacados</option>
+              <option value="sale">🏷 Ofertas</option>
+              <option value="routines">🌿 Rutinas</option>
+              <option value="cleanser">🫧 Limpiadores</option>
+              <option value="serum">✨ Sérums</option>
+              <option value="mask">🎭 Mascarillas</option>
+            </select>
+          </div>
+          <div class="pf-field">
+            <label>Enlace botón 2</label>
+            <select id="bLink2">
+              <option value="featured">⭐ Destacados</option>
+              <option value="all">📦 Catálogo</option>
+              <option value="sale">🏷 Ofertas</option>
+              <option value="serum">✨ Sérums</option>
+              <option value="mask">🎭 Mascarillas</option>
+              <option value="sunscreen">☀️ Protector Solar</option>
+            </select>
+          </div>
+        </div>
+        <div class="pf-field"><label>Color de fondo (gradiente CSS)</label><input type="text" id="bBg" placeholder="Ej: linear-gradient(135deg,#5c2d3c,#c04060)"></div>
+        <div class="pf-field"><label>Imagen de fondo (URL)</label><input type="url" id="bImgUrl" placeholder="https://..."></div>
+        <div class="pf-field"><label>Orden</label><input type="number" id="bOrder" min="0" placeholder="0"></div>
+        <div class="pf-checks"><label class="check-wrap"><input type="checkbox" id="bActive" checked><span class="cb"></span>Activo</label></div>
+        <button class="btn-primary" id="saveBannerBtn" type="button" style="width:100%;margin-top:1rem">💾 Guardar Banner</button>
+        <div class="form-feedback" id="bannerFeedback"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- VISTA: CUPONES -->
+  <!-- ══════════════════════════════════════════════ -->
+  <section class="view" id="view-coupons">
+    <div class="view-header">
+      <h1>Cupones de Descuento</h1>
+      <button class="btn-primary" id="addCouponBtn" type="button">+ Nuevo Cupón</button>
+    </div>
+    <div class="coupons-grid" id="couponsGrid">
+      <div class="loading-row"><div class="mini-spin"></div> Cargando cupones...</div>
+    </div>
+
+    <div class="side-form" id="couponForm" style="display:none">
+      <div class="sf-header">
+        <h3 id="couponFormTitle">Nuevo Cupón</h3>
+        <button class="sf-close" id="closeCouponForm" type="button">✕</button>
+      </div>
+      <div class="sf-body">
+        <input type="hidden" id="couponEditId">
+        <div class="pf-field req"><label>Código del Cupón *</label><input type="text" id="cCode" placeholder="Ej: SKINBRI20" style="text-transform:uppercase"></div>
+        <div class="pf-field req">
+          <label>Tipo de Descuento *</label>
+          <select id="cType">
+            <option value="percent">Porcentaje (%)</option>
+            <option value="fixed">Monto Fijo (S/)</option>
+          </select>
+        </div>
+        <div class="pf-field req"><label>Valor del Descuento *</label><input type="number" id="cValue" step="0.01" min="0" placeholder="Ej: 20"></div>
+        <div class="pf-field"><label>Mínimo de compra (S/)</label><input type="number" id="cMinOrder" step="0.01" min="0" placeholder="0 = sin mínimo"></div>
+        <div class="pf-field"><label>Usos máximos</label><input type="number" id="cMaxUses" min="0" placeholder="0 = ilimitado"></div>
+        <div class="pf-field"><label>Fecha de expiración</label><input type="date" id="cExpiry"></div>
+        <div class="pf-field"><label>Descripción interna</label><input type="text" id="cDesc" placeholder="Ej: Promoción lanzamiento"></div>
+        <div class="pf-checks"><label class="check-wrap"><input type="checkbox" id="cActive" checked><span class="cb"></span>Cupón Activo</label></div>
+        <button class="btn-primary" id="saveCouponBtn" type="button" style="width:100%;margin-top:1rem">💾 Guardar Cupón</button>
+        <div class="form-feedback" id="couponFeedback"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- VISTA: SUSCRIPTORAS -->
+  <!-- ══════════════════════════════════════════════ -->
+  <section class="view" id="view-subscribers">
+    <div class="view-header">
+      <h1>Suscriptoras al Newsletter</h1>
+      <button class="btn-outline-sm" id="exportSubsBtn" type="button">⬇ Exportar CSV</button>
+    </div>
+    <div class="subs-stats" id="subsStats"></div>
+    <div class="table-wrap">
+      <table class="prod-table">
+        <thead><tr><th>#</th><th>Correo Electrónico</th><th>Fecha de Suscripción</th><th>Acciones</th></tr></thead>
+        <tbody id="subsTableBody"><tr><td colspan="4" class="loading-row"><div class="mini-spin"></div> Cargando...</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- VISTA: PEDIDOS -->
+  <!-- ══════════════════════════════════════════════ -->
+  <section class="view" id="view-orders">
+    <div class="view-header">
+      <h1>Pedidos</h1>
+      <button class="btn-primary" id="addOrderBtn" type="button">+ Registrar Pedido Manual</button>
+    </div>
+    <div class="orders-list" id="ordersList">
+      <div class="loading-row"><div class="mini-spin"></div> Cargando pedidos...</div>
+    </div>
+
+    <div class="side-form" id="orderForm" style="display:none">
+      <div class="sf-header">
+        <h3>Registrar Pedido</h3>
+        <button class="sf-close" id="closeOrderForm" type="button">✕</button>
+      </div>
+      <div class="sf-body">
+        <div class="pf-field req"><label>Nombre del cliente *</label><input type="text" id="oName" placeholder="Ej: María García"></div>
+        <div class="pf-field"><label>WhatsApp / Teléfono</label><input type="text" id="oPhone" placeholder="+51 999 999 999"></div>
+        <div class="pf-field req"><label>Productos *</label><textarea id="oItems" rows="4" placeholder="Ej: COSRX Snail Essence x1, Laneige Cream x2..."></textarea></div>
+        <div class="pf-grid-2">
+          <div class="pf-field"><label>Total (S/)</label><input type="number" id="oTotal" step="0.01" min="0" placeholder="0.00"></div>
+          <div class="pf-field">
+            <label>Estado</label>
+            <select id="oStatus">
+              <option value="pending">⏳ Pendiente</option>
+              <option value="confirmed">✅ Confirmado</option>
+              <option value="shipped">📦 Enviado</option>
+              <option value="delivered">🏠 Entregado</option>
+              <option value="cancelled">❌ Cancelado</option>
+            </select>
+          </div>
+        </div>
+        <div class="pf-field"><label>Dirección de envío</label><input type="text" id="oAddress" placeholder="Dirección completa"></div>
+        <div class="pf-field"><label>Notas adicionales</label><textarea id="oNotes" rows="2" placeholder="Notas..."></textarea></div>
+        <button class="btn-primary" id="saveOrderBtn" type="button" style="width:100%;margin-top:1rem">💾 Guardar Pedido</button>
+        <div class="form-feedback" id="orderFeedback"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- VISTA: SOBRE NOSOTRAS (EDITOR) -->
+  <!-- ══════════════════════════════════════════════ -->
+  <section class="view" id="view-about">
+    <div class="view-header">
+      <h1>Página "Sobre Nosotras"</h1>
+      <p>Edita el contenido que aparece en la sección de la tienda</p>
+    </div>
+
+    <div class="pform-card">
+      <div class="pfc-title">✏️ Contenido Principal</div>
+      <div class="pf-field"><label>Título principal</label><input type="text" id="aboutTitle" placeholder="Ej: Piel feliz,"></div>
+      <div class="pf-field"><label>Título cursiva</label><input type="text" id="aboutTitleEm" placeholder="Ej: tú feliz"></div>
+      <div class="pf-field"><label>Párrafo 1</label><textarea id="aboutP1" rows="3" placeholder="Primer párrafo..."></textarea></div>
+      <div class="pf-field"><label>Párrafo 2</label><textarea id="aboutP2" rows="3" placeholder="Segundo párrafo..."></textarea></div>
+      <div class="pf-field"><label>Etiquetas / Pills (separadas por coma)</label><input type="text" id="aboutPills" placeholder="🌿 100% Auténtico, 🇰🇷 Importado de Corea, 💌 Atención personalizada"></div>
+    </div>
+
+    <div class="pform-card">
+      <div class="pfc-title">📞 Contacto y Redes Sociales</div>
+      <div class="pf-grid-2">
+        <div class="pf-field"><label>WhatsApp (código país sin +)</label><input type="text" id="aboutWa" placeholder="51999999999"></div>
+        <div class="pf-field"><label>Instagram URL</label><input type="url" id="aboutIg" placeholder="https://instagram.com/..."></div>
+        <div class="pf-field"><label>TikTok URL</label><input type="url" id="aboutTt" placeholder="https://tiktok.com/@..."></div>
+        <div class="pf-field"><label>Texto de barra de anuncio</label><input type="text" id="aboutAnnounce" placeholder="✦ Envíos a todo el país ✦..."></div>
+      </div>
+    </div>
+
+    <div class="pform-actions">
+      <button class="btn-primary" id="saveAboutBtn" type="button">💾 Guardar Cambios</button>
+    </div>
+    <div class="form-feedback" id="aboutFeedback"></div>
+  </section>
+
+</div><!-- /.main-wrap -->
+
+<!-- CONFIRMACIÓN PARA ELIMINAR -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="cb-icon">🗑️</div>
+    <h3 id="confirmTitle">¿Eliminar?</h3>
+    <p id="confirmMsg">Esta acción no se puede deshacer.</p>
+    <div class="cb-actions">
+      <button class="btn-cancel" id="confirmCancel" type="button">Cancelar</button>
+      <button class="btn-danger" id="confirmOk" type="button">Sí, eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST NOTIFICACIONES -->
+<div class="admin-toast" id="adminToast"></div>
+
+<script type="module" src="dashboard.js"></script>
+
+<script>
+  // Verificar sesión de administrador (credenciales fijas)
+const isLoggedIn = sessionStorage.getItem('admin_logged_in');
+if (!isLoggedIn || isLoggedIn !== 'true') {
+  window.location.href = 'login.html';
+}
+
+// Opcional: mostrar el usuario en el panel
+const adminUser = sessionStorage.getItem('admin_user');
+if (adminUser && document.getElementById('tbEmail')) {
+  document.getElementById('tbEmail').textContent = adminUser;
+}
+
+</script>ript
+</body>
+</html>

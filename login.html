@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SkinBri Shop — Acceso Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&family=Noto+Serif+KR:wght@200;300&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --white:#fff; --cream:#fdf8f5; --blush:#fce8e0;
+      --rose:#e8a0a0; --rose-deep:#c04060; --plum:#5c2d3c; --plum-2:#7a3d50;
+      --text:#1a1014; --text-3:#8a7080; --border:rgba(90,40,60,.15);
+      --shadow:0 20px 60px rgba(90,40,60,.16);
+      --font-d:'Playfair Display',serif; --font:'Inter',sans-serif; --font-kr:'Noto Serif KR',serif;
+      --t:.3s;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{
+      background:var(--cream);font-family:var(--font);min-height:100vh;
+      display:flex;align-items:center;justify-content:center;
+      position:relative;overflow:hidden;
+    }
+    /* Background blobs */
+    .bg-blob{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+    .b1{width:520px;height:520px;background:radial-gradient(circle,#fce8e0,transparent);top:-120px;right:-150px;opacity:.6}
+    .b2{width:380px;height:380px;background:radial-gradient(circle,rgba(192,64,96,.2),transparent);bottom:-80px;left:-100px;opacity:.5}
+    /* Card */
+    .card{
+      background:var(--white);border-radius:28px;
+      padding:3rem 2.75rem;width:min(440px,94vw);
+      box-shadow:var(--shadow);border:1px solid var(--border);
+      position:relative;z-index:1;
+      animation:slideUp .7s cubic-bezier(.25,.46,.45,.94) both;
+    }
+    @keyframes slideUp{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}
+    .card-logo{text-align:center;margin-bottom:2.25rem}
+    .cl-kr{font-family:var(--font-kr);font-size:.7rem;color:var(--rose);letter-spacing:.2em;display:block;margin-bottom:4px}
+    .cl-en{font-family:var(--font-d);font-size:1.9rem;font-weight:600;color:var(--plum)}
+    .cl-tag{display:inline-block;margin-top:.5rem;font-size:.66rem;letter-spacing:.2em;color:var(--text-3);background:var(--blush);padding:.22rem .8rem;border-radius:20px;text-transform:uppercase}
+    .card h1{font-family:var(--font-d);font-size:1.5rem;font-weight:400;color:var(--text);margin-bottom:.3rem}
+    .card-sub{font-size:.85rem;color:var(--text-3);margin-bottom:2rem}
+    .error-box{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:10px;padding:.7rem 1rem;font-size:.84rem;margin-bottom:1.1rem;display:none}
+    .field{margin-bottom:1.15rem}
+    .field label{display:block;font-size:.72rem;font-weight:600;letter-spacing:.12em;color:var(--text-3);text-transform:uppercase;margin-bottom:.5rem}
+    .field input{
+      width:100%;padding:.85rem 1.1rem;
+      border:1.5px solid var(--border);border-radius:12px;
+      font-family:var(--font);font-size:.95rem;color:var(--text);
+      background:var(--cream);transition:border-color var(--t),box-shadow var(--t);
+    }
+    .field input:focus{border-color:var(--rose);box-shadow:0 0 0 3px rgba(212,112,122,.12);outline:none;background:#fff}
+    .btn-login{
+      width:100%;margin-top:.25rem;
+      background:linear-gradient(135deg,var(--rose-deep),var(--plum));
+      color:#fff;padding:1rem;border-radius:50px;border:none;
+      font-family:var(--font);font-size:.95rem;font-weight:600;
+      letter-spacing:.04em;cursor:pointer;
+      transition:transform var(--t),box-shadow var(--t);
+      box-shadow:0 8px 24px rgba(192,64,96,.35);
+    }
+    .btn-login:hover{transform:translateY(-2px);box-shadow:0 16px 40px rgba(192,64,96,.45)}
+    .btn-login:disabled{opacity:.6;transform:none;cursor:not-allowed}
+    .spin{width:18px;height:18px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spinning .7s linear infinite;display:inline-block;margin-right:.5rem}
+    @keyframes spinning{to{transform:rotate(360deg)}}
+    .back-link{display:block;text-align:center;margin-top:1.75rem;font-size:.82rem;color:var(--text-3);transition:color var(--t)}
+    .back-link:hover{color:var(--rose-deep)}
+    .footer-note{text-align:center;margin-top:1.25rem;font-size:.7rem;color:var(--text-3);opacity:.7}
+  </style>
+</head>
+<body>
+  <div class="bg-blob b1"></div>
+  <div class="bg-blob b2"></div>
+
+  <div class="card">
+    <div class="card-logo">
+      <span class="cl-kr">스킨브리</span>
+      <div class="cl-en">SkinBri Shop</div>
+      <span class="cl-tag">Panel de Administración</span>
+    </div>
+
+    <h1>Bienvenida 🌸</h1>
+    <p class="card-sub">Ingresa con tus credenciales de administrador</p>
+
+    <div class="error-box" id="errorBox"></div>
+
+    <div class="field">
+      <label>Usuario</label>
+      <input type="text" id="userInp" placeholder="admin" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <input type="password" id="passInp" placeholder="••••••••" autocomplete="off">
+    </div>
+
+    <button class="btn-login" id="loginBtn">
+      <span class="spin" id="loginSpin" style="display:none"></span>
+      <span id="loginText">Ingresar al Panel</span>
+    </button>
+
+    <a href="../index.html" class="back-link">← Volver a la tienda</a>
+    <p class="footer-note">Acceso solo para administradores autorizados</p>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════
+    //  CREDENCIALES FIJAS
+    //  usuario: admin
+    //  contraseña: admin
+    // ═══════════════════════════════════════════════════════════════
+    
+    const FIXED_USER = 'admin';
+    const FIXED_PASS = 'admin';
+    
+    // Verificar si ya hay sesión activa
+    const isLoggedIn = sessionStorage.getItem('admin_logged_in');
+    if (isLoggedIn === 'true') {
+      window.location.href = 'dashboard.html';
+    }
+    
+    // DOM elements
+    const userInp = document.getElementById('userInp');
+    const passInp = document.getElementById('passInp');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginSpin = document.getElementById('loginSpin');
+    const loginText = document.getElementById('loginText');
+    const errorBox = document.getElementById('errorBox');
+    
+    // Función para mostrar error
+    function showError(msg) {
+      errorBox.textContent = '⚠️ ' + msg;
+      errorBox.style.display = 'block';
+      setTimeout(() => {
+        errorBox.style.display = 'none';
+      }, 3000);
+    }
+    
+    // Función de login
+    function doLogin() {
+      const username = userInp.value.trim();
+      const password = passInp.value;
+      
+      // Validar campos
+      if (!username || !password) {
+        showError('Por favor completa todos los campos');
+        return;
+      }
+      
+      // Validar credenciales
+      if (username === FIXED_USER && password === FIXED_PASS) {
+        // Login exitoso
+        sessionStorage.setItem('admin_logged_in', 'true');
+        sessionStorage.setItem('admin_user', username);
+        
+        // Mostrar loading
+        loginBtn.disabled = true;
+        loginSpin.style.display = 'inline-block';
+        loginText.textContent = 'Ingresando...';
+        
+        // Redirigir al dashboard
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 500);
+      } else {
+        showError('Usuario o contraseña incorrectos');
+      }
+    }
+    
+    // Eventos
+    loginBtn.addEventListener('click', doLogin);
+    
+    // Enter key
+    passInp.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') doLogin();
+    });
+    userInp.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') passInp.focus();
+    });
+    
+    // Pequeño efecto de pétalos
+    function createPetals() {
+      const petalsContainer = document.createElement('div');
+      petalsContainer.style.position = 'absolute';
+      petalsContainer.style.inset = '0';
+      petalsContainer.style.overflow = 'hidden';
+      petalsContainer.style.pointerEvents = 'none';
+      petalsContainer.style.zIndex = '0';
+      document.body.appendChild(petalsContainer);
+      
+      for (let i = 0; i < 8; i++) {
+        const petal = document.createElement('div');
+        petal.style.position = 'absolute';
+        petal.style.width = '8px';
+        petal.style.height = '12px';
+        petal.style.background = 'linear-gradient(135deg, #fce8e0, #e8a0a0)';
+        petal.style.borderRadius = '50% 50% 50% 0';
+        petal.style.left = Math.random() * 100 + '%';
+        petal.style.animation = `petalFall ${8 + Math.random() * 5}s linear infinite`;
+        petal.style.animationDelay = `-${Math.random() * 10}s`;
+        petalsContainer.appendChild(petal);
+      }
+    }
+    
+    // Agregar keyframes dinámicamente
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes petalFall {
+        0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+        10% { opacity: 0.6; }
+        90% { opacity: 0.3; }
+        100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    createPetals();
+  </script>
+</body>
+</html>
