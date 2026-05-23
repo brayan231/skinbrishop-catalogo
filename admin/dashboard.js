@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 //  SKINBRI SHOP — Admin Dashboard v3 COMPLETO
-//  SIN FIREBASE AUTH (solo credenciales fijas admin/admin)
+//  CON SUBIDA DE IMÁGENES PARA BANNERS (desde PC)
 // ═══════════════════════════════════════════════════════════════
 
 import { db, storage } from '../firebase-config.js';
@@ -14,7 +14,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 // ═══════════════════════════════════════════════════════════════
-//  VERIFICAR SESIÓN (credenciales fijas)
+//  VERIFICAR SESIÓN
 // ═══════════════════════════════════════════════════════════════
 
 const isLoggedIn = sessionStorage.getItem('admin_logged_in');
@@ -22,7 +22,6 @@ if (!isLoggedIn || isLoggedIn !== 'true') {
   window.location.href = 'login.html';
 }
 
-// Mostrar usuario en el panel
 const adminUser = sessionStorage.getItem('admin_user');
 if (adminUser && document.getElementById('tbEmail')) {
   document.getElementById('tbEmail').textContent = adminUser;
@@ -50,11 +49,6 @@ const MAX_IMGS = 5;
 const STATUS_LABELS = {
   pending: '⏳ Pendiente', confirmed: '✅ Confirmado',
   shipped: '📦 Enviado', delivered: '🏠 Entregado', cancelled: '❌ Cancelado'
-};
-
-const STATUS_CLASSES = {
-  pending: 'os-pending', confirmed: 'os-confirmed',
-  shipped: 'os-shipped', delivered: 'os-delivered', cancelled: 'os-cancelled'
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -138,7 +132,7 @@ function confirmAction(title, msg, cb) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  LOGOUT (sin Firebase)
+//  LOGOUT
 // ═══════════════════════════════════════════════════════════════
 
 function setupLogout() {
@@ -227,7 +221,6 @@ function renderDashboardStats(products) {
   if (lowEl) lowEl.textContent = products.filter(p => p.stock !== undefined && +p.stock > 0 && +p.stock <= 5).length;
   if (outEl) outEl.textContent = products.filter(p => p.stock !== undefined && +p.stock === 0).length;
   
-  // Gráfico de categorías
   const byCat = {};
   products.forEach(p => {
     const cat = p.category || 'other';
@@ -248,7 +241,6 @@ function renderDashboardStats(products) {
       `).join('');
   }
   
-  // Alertas de stock
   const outStock = products.filter(p => p.stock !== undefined && +p.stock === 0);
   const lowStock = products.filter(p => p.stock !== undefined && +p.stock > 0 && +p.stock <= 5);
   const alertsEl = $('stockAlerts');
@@ -264,7 +256,6 @@ function renderDashboardStats(products) {
     }
   }
   
-  // Estadísticas de precios
   const prices = products.map(p => +(p.price || 0)).filter(Boolean);
   const avg = prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
   const priceStatsEl = $('priceStats');
@@ -277,7 +268,6 @@ function renderDashboardStats(products) {
     `;
   }
   
-  // Accesos rápidos
   $$('.qa-btn[data-view]').forEach(btn => {
     btn.removeEventListener('click', () => {});
     btn.addEventListener('click', () => switchView(btn.dataset.view));
@@ -379,26 +369,26 @@ function renderProductsTable(products) {
           <td>
             <div class="t-name">${escapeHtml(p.name || '—')}</div>
             <div class="t-brand">${escapeHtml(p.brand || '')}</div>
-           </td>
+          </td>
           <td><span class="t-cat">${CAT_EMOJI[p.category] || ''} ${CAT_NAME[p.category] || p.category || '—'}</span></td>
           <td>
             <div class="t-price">S/ ${(+p.price || 0).toFixed(2)}</div>
             ${hasDiscount ? `<div class="t-orig">S/ ${(+p.originalPrice).toFixed(2)}</div>` : ''}
-           </td>
+          </td>
           <td>${stockHtml}</td>
           <td>
             <div class="t-status ${isActive ? 't-active' : 't-inactive'}">
               <span class="t-dot"></span>${isActive ? 'Activo' : 'Oculto'}
             </div>
-           </td>
+          </td>
           <td>
             <div class="t-actions">
               <button class="btn-icon" title="Editar" data-act="edit" data-id="${p.id}">✏️</button>
               <button class="btn-icon" title="${isActive ? 'Ocultar' : 'Activar'}" data-act="toggle" data-id="${p.id}" data-active="${isActive}">${isActive ? '👁' : '🙈'}</button>
               <button class="btn-icon danger" title="Eliminar" data-act="delete" data-id="${p.id}" data-name="${escapeHtml(p.name)}" data-img="${p.imageUrl || ''}">🗑️</button>
             </div>
-           </td>
-         </tr>
+          </td>
+        </tr>
       `;
     }).join('');
     
@@ -451,7 +441,7 @@ async function deleteProduct(id, imgUrl) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  IMÁGENES MÚLTIPLES (UPLOAD)
+//  IMÁGENES MÚLTIPLES PARA PRODUCTOS
 // ═══════════════════════════════════════════════════════════════
 
 function buildImageSlots() {
@@ -713,8 +703,11 @@ async function saveProduct(e) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  MÓDULO: BANNERS
+//  MÓDULO: BANNERS (CON SUBIDA DE IMÁGENES DESDE PC)
 // ═══════════════════════════════════════════════════════════════
+
+let bannerImageFile = null;
+let bannerImagePreview = null;
 
 function setupBannersModule() {
   const addBtn = $('addBannerBtn');
@@ -724,6 +717,52 @@ function setupBannersModule() {
   if (addBtn) addBtn.addEventListener('click', () => { resetBannerForm(); $('bannerForm').style.display = 'block'; });
   if (closeBtn) closeBtn.addEventListener('click', () => { $('bannerForm').style.display = 'none'; });
   if (saveBtn) saveBtn.addEventListener('click', saveBanner);
+  
+  // Agregar input de archivo para imagen del banner
+  const imgUrlField = $('bImgUrl');
+  if (imgUrlField) {
+    // Crear input de archivo
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/jpeg,image/png,image/webp';
+    fileInput.style.marginTop = '0.5rem';
+    fileInput.style.padding = '0.5rem';
+    fileInput.style.border = '1px solid var(--border)';
+    fileInput.style.borderRadius = '8px';
+    fileInput.style.width = '100%';
+    fileInput.placeholder = 'O selecciona una imagen desde tu PC';
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files[0]) {
+        bannerImageFile = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          bannerImagePreview = ev.target.result;
+          // Mostrar preview
+          let previewDiv = document.getElementById('bannerImagePreview');
+          if (!previewDiv) {
+            previewDiv = document.createElement('div');
+            previewDiv.id = 'bannerImagePreview';
+            previewDiv.style.marginTop = '0.5rem';
+            previewDiv.style.borderRadius = '8px';
+            previewDiv.style.overflow = 'hidden';
+            fileInput.parentNode.appendChild(previewDiv);
+          }
+          previewDiv.innerHTML = `<img src="${bannerImagePreview}" style="width:100%; max-height:150px; object-fit:cover; border-radius:8px;">`;
+        };
+        reader.readAsDataURL(bannerImageFile);
+      }
+    });
+    imgUrlField.parentNode.appendChild(fileInput);
+    
+    // Agregar texto indicativo
+    const hint = document.createElement('small');
+    hint.textContent = '📷 Puedes pegar una URL o seleccionar una imagen desde tu PC';
+    hint.style.display = 'block';
+    hint.style.marginTop = '0.3rem';
+    hint.style.color = 'var(--text-3)';
+    hint.style.fontSize = '0.7rem';
+    imgUrlField.parentNode.appendChild(hint);
+  }
 }
 
 async function loadBanners() {
@@ -799,6 +838,10 @@ function openEditBanner(docSnap) {
   $('bActive').checked = b.active !== false;
   $('bannerFormTitle').textContent = 'Editar Banner';
   $('bannerForm').style.display = 'block';
+  bannerImageFile = null;
+  bannerImagePreview = null;
+  const previewDiv = document.getElementById('bannerImagePreview');
+  if (previewDiv) previewDiv.innerHTML = '';
 }
 
 function resetBannerForm() {
@@ -810,6 +853,10 @@ function resetBannerForm() {
   if ($('bActive')) $('bActive').checked = true;
   $('bannerFormTitle').textContent = 'Nuevo Banner';
   hideFeedback('bannerFeedback');
+  bannerImageFile = null;
+  bannerImagePreview = null;
+  const previewDiv = document.getElementById('bannerImagePreview');
+  if (previewDiv) previewDiv.innerHTML = '';
 }
 
 async function saveBanner() {
@@ -817,6 +864,34 @@ async function saveBanner() {
   if (!title) {
     showFeedback('bannerFeedback', '⚠️ El título es obligatorio', 'err');
     return;
+  }
+  
+  let finalImageUrl = $('bImgUrl').value.trim() || null;
+  
+  // Si hay una imagen subida desde PC, subirla a Storage
+  if (bannerImageFile) {
+    const ext = bannerImageFile.name.split('.').pop();
+    const fileName = `banners/${Date.now()}.${ext}`;
+    const storageRef = ref(storage, fileName);
+    const uploadTask = uploadBytesResumable(storageRef, bannerImageFile);
+    
+    showFeedback('bannerFeedback', '📤 Subiendo imagen...', 'ok');
+    
+    try {
+      const uploadResult = await new Promise((resolve, reject) => {
+        uploadTask.on('state_changed', null,
+          (error) => reject(error),
+          async () => {
+            const url = await getDownloadURL(uploadTask.snapshot.ref);
+            resolve(url);
+          }
+        );
+      });
+      finalImageUrl = uploadResult;
+    } catch (error) {
+      showFeedback('bannerFeedback', '❌ Error al subir la imagen: ' + error.message, 'err');
+      return;
+    }
   }
   
   const bannerData = {
@@ -829,7 +904,7 @@ async function saveBanner() {
     catLink: $('bLink').value,
     cat2Link: $('bLink2').value,
     bg: $('bBg').value.trim() || 'linear-gradient(135deg,#5c2d3c,#c04060)',
-    imgUrl: $('bImgUrl').value.trim() || null,
+    imgUrl: finalImageUrl,
     order: parseInt($('bOrder').value) || 0,
     active: $('bActive').checked,
     updatedAt: serverTimestamp()
@@ -856,7 +931,7 @@ async function saveBanner() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  MÓDULO: CUPONES
+//  MÓDULO: CUPONES (RESUMIDO - IGUAL QUE ANTES)
 // ═══════════════════════════════════════════════════════════════
 
 function setupCouponsModule() {
@@ -1293,8 +1368,7 @@ function init() {
   setupOrdersModule();
   setupAboutModule();
   
-  console.log('%c🌸 SkinBri Admin v3 COMPLETO (sin Firebase Auth)', 'color:#c04060;font-size:1.1rem;font-weight:bold');
+  console.log('%c🌸 SkinBri Admin v3 COMPLETO (con subida de imágenes)', 'color:#c04060;font-size:1.1rem;font-weight:bold');
 }
 
-// Iniciar
 init();
